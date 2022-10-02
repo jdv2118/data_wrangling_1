@@ -1,0 +1,142 @@
+---
+title: "tidy_data"
+output: html_document
+date: "2022-09-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+options(tibble.print_min = 5)
+```
+
+```{r}
+pulse_df = 
+  haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
+  janitor::clean_names()
+
+pulse_df
+```
+
+```{r}
+pulse_tidy_data = 
+  pivot_longer(
+    pulse_df, 
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    values_to = "bdi",
+    names_prefix = "bdi_score_"
+    )
+
+pulse_tidy_data
+```
+
+```{r}
+pulse_df = 
+  haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    values_to = "bdi",
+    names_prefix = "bdi_score_"
+    ) %>%
+  mutate(
+    visit = replace(visit, visit == 'bl', '00m'),
+    visit = factor(visit)
+    ) %>%
+  arrange(id, visit)
+
+pulse_df
+```
+
+```{r}
+analysis_result = tibble(
+  group = c("treatment", "treatment", "placebo", "placebo"),
+  time = c("pre", "post", "pre", "post"),
+  mean = c(4, 8, 3.5, 4)
+)
+
+analysis_result
+
+analysis_results_wide = pivot_wider(
+  analysis_result,
+  names_from = 'time',
+  values_from = 'mean'
+  )
+
+analysis_results_wide
+```
+
+```{r}
+fellowship_ring = 
+  readxl::read_excel("./data/LotR_Words.xlsx", range = "B3:D6") %>%
+  mutate(movie = "fellowship_ring")
+
+two_towers = 
+  readxl::read_excel("./data/LotR_Words.xlsx", range = "F3:H6") %>%
+  mutate(movie = "two_towers")
+
+return_king = 
+  readxl::read_excel("./data/LotR_Words.xlsx", range = "J3:L6") %>%
+  mutate(movie = "return_king")
+
+lotr_tidy = bind_rows(fellowship_ring, two_towers, return_king) %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+    female:male,
+    names_to = 'gender',
+    values_to = 'words'
+    ) %>%
+  mutate(race = str_to_lower(race)) %>%
+  select(movie, everything()) 
+
+lotr_tidy
+```
+
+```{r}
+pup_data = 
+  read_csv("./data/FAS_pups.csv") %>%
+  janitor::clean_names() %>%
+  mutate(
+    sex = recode(sex, `1` = "male", `2` = "female"),
+    sex = factor(sex))
+
+litter_data = 
+  read_csv("./data/FAS_litters.csv") %>%
+  janitor::clean_names() %>%
+  separate(group, into = c("dose", "day_of_tx"), sep = 3) %>%
+  relocate(litter_number) %>%
+  mutate(
+    wt_gain = gd18_weight - gd0_weight,
+    dose = str_to_lower(dose))
+
+fas_data = 
+  left_join(pup_data, litter_data, by = "litter_number")
+
+fas_data
+```
+
+```{r}
+surv_os = read_csv("data/surv_os.csv") %>% 
+  janitor::clean_names() %>% 
+  rename(id = what_is_your_uni, os = what_operating_system_do_you_use)
+
+surv_pr_git = read_csv("data/surv_program_git.csv") %>% 
+  janitor::clean_names() %>% 
+  rename(
+    id = what_is_your_uni, 
+    prog = what_is_your_degree_program,
+    git_exp = which_most_accurately_describes_your_experience_with_git)
+
+left_join(surv_os, surv_pr_git)
+inner_join(surv_os, surv_pr_git)
+anti_join(surv_os, surv_pr_git)
+anti_join(surv_pr_git, surv_os)
+```
+
+
